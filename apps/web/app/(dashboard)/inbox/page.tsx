@@ -133,6 +133,24 @@ function InboxDetailLabel({ item }: { item: InboxItem }) {
       if (emoji) return <span>Reacted {emoji} to your comment</span>;
       return <span>{typeLabels[item.type]}</span>;
     }
+    case "task_completed": {
+      const label = details.trigger === "comment" ? "Completed follow-up" : "Task completed";
+      if (details.pr_url) {
+        return (
+          <span className="inline-flex items-center gap-1">
+            {label} —{" "}
+            <a href={details.pr_url} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2">
+              PR
+            </a>
+          </span>
+        );
+      }
+      return <span>{label}</span>;
+    }
+    case "task_failed": {
+      if (details.error) return <span>Task failed: {details.error}</span>;
+      return <span>{typeLabels[item.type]}</span>;
+    }
     default:
       return <span>{typeLabels[item.type] ?? item.type}</span>;
   }

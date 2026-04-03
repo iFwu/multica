@@ -308,6 +308,15 @@ func TestActivityTaskCompleted(t *testing.T) {
 	if util.UUIDToString(activities[0].ActorID) != agentID {
 		t.Fatalf("expected actor_id %s, got %s", agentID, util.UUIDToString(activities[0].ActorID))
 	}
+
+	// Verify enriched details contain issue_title
+	var details map[string]string
+	if err := json.Unmarshal(activities[0].Details, &details); err != nil {
+		t.Fatalf("failed to unmarshal details: %v", err)
+	}
+	if details["issue_title"] != "subscriber test issue" {
+		t.Fatalf("expected issue_title 'subscriber test issue', got %q", details["issue_title"])
+	}
 }
 
 func TestActivityTaskFailed(t *testing.T) {
@@ -342,5 +351,14 @@ func TestActivityTaskFailed(t *testing.T) {
 	}
 	if activities[0].Action != "task_failed" {
 		t.Fatalf("expected action 'task_failed', got %q", activities[0].Action)
+	}
+
+	// Verify enriched details contain issue_title
+	var details map[string]string
+	if err := json.Unmarshal(activities[0].Details, &details); err != nil {
+		t.Fatalf("failed to unmarshal details: %v", err)
+	}
+	if details["issue_title"] != "subscriber test issue" {
+		t.Fatalf("expected issue_title 'subscriber test issue', got %q", details["issue_title"])
 	}
 }

@@ -230,11 +230,12 @@ func handleTaskActivity(ctx context.Context, bus *events.Bus, queries *db.Querie
 	}
 	agentID, _ := payload["agent_id"].(string)
 	issueID, _ := payload["issue_id"].(string)
+	taskID, _ := payload["task_id"].(string)
 	if issueID == "" {
 		return
 	}
 
-	// Look up issue to get workspace_id
+	// Look up issue to get workspace_id and title
 	issue, err := queries.GetIssue(ctx, parseUUID(issueID))
 	if err != nil {
 		slog.Error("activity: failed to get issue for task event",
@@ -242,13 +243,46 @@ func handleTaskActivity(ctx context.Context, bus *events.Bus, queries *db.Querie
 		return
 	}
 
+	// Build enriched details from the task record
+	detailsMap := map[string]string{
+		"issue_title": issue.Title,
+	}
+
+	if taskID != "" {
+		if task, err := queries.GetAgentTask(ctx, parseUUID(taskID)); err == nil {
+			// Trigger type: comment-triggered vs assignment-triggered
+			if task.TriggerCommentID.Valid {
+				detailsMap["trigger"] = "comment"
+			}
+
+			if action == "task_completed" && len(task.Result) > 0 {
+				var completed protocol.TaskCompletedPayload
+				if err := json.Unmarshal(task.Result, &completed); err == nil {
+					if completed.PRURL != "" {
+						detailsMap["pr_url"] = completed.PRURL
+					}
+				}
+			}
+			if action == "task_failed" && task.Error.Valid && task.Error.String != "" {
+				// Truncate long error messages for the activity summary
+				errMsg := task.Error.String
+				if len(errMsg) > 200 {
+					errMsg = errMsg[:200] + "…"
+				}
+				detailsMap["error"] = errMsg
+			}
+		}
+	}
+
+	details, _ := json.Marshal(detailsMap)
+
 	activity, err := queries.CreateActivity(ctx, db.CreateActivityParams{
 		WorkspaceID: issue.WorkspaceID,
 		IssueID:     parseUUID(issueID),
 		ActorType:   util.StrToText("agent"),
 		ActorID:     parseUUID(agentID),
 		Action:      action,
-		Details:     []byte("{}"),
+		Details:     details,
 	})
 	if err != nil {
 		slog.Error("activity: failed to record task activity",

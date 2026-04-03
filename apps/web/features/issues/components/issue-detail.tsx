@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef, memo } from "react";
+import { useState, useEffect, useCallback, useRef, memo, type ReactNode } from "react";
 import { useDefaultLayout, usePanelRef } from "react-resizable-panels";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -93,7 +93,7 @@ function priorityLabel(priority: string): string {
 function formatActivity(
   entry: TimelineEntry,
   resolveActorName?: (type: string, id: string) => string,
-): string {
+): ReactNode {
   const details = (entry.details ?? {}) as Record<string, string>;
   switch (entry.action) {
     case "created":
@@ -121,10 +121,24 @@ function formatActivity(
       return `renamed this issue from "${details.from ?? "?"}" to "${details.to ?? "?"}"`;
     case "description_updated":
       return "updated the description";
-    case "task_completed":
-      return "completed the task";
-    case "task_failed":
+    case "task_completed": {
+      const label = details.trigger === "comment" ? "completed the follow-up" : "completed the task";
+      if (details.pr_url) {
+        return (
+          <>
+            {label} —{" "}
+            <a href={details.pr_url} target="_blank" rel="noopener noreferrer" className="text-foreground underline underline-offset-2 hover:text-foreground/80">
+              PR
+            </a>
+          </>
+        );
+      }
+      return label;
+    }
+    case "task_failed": {
+      if (details.error) return `task failed: ${details.error}`;
       return "task failed";
+    }
     default:
       return entry.action ?? "";
   }
