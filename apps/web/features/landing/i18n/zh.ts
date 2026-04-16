@@ -288,7 +288,7 @@ export const zh: LandingDict = {
           "支持 GitHub Copilot CLI 运行时",
           "支持 Cursor Agent CLI 运行时",
           "支持 Pi Agent 运行时",
-          "官网新增桌面应用下载入口",
+          "工作区 URL 改造——slug 优先路由（`/{slug}/issues`），旧链接自动重定向",
         ],
         fixes: [
           "Codex 同一 Issue 下跨任务恢复会话线程",

@@ -288,7 +288,7 @@ export const en: LandingDict = {
           "GitHub Copilot CLI runtime support",
           "Cursor Agent CLI runtime support",
           "Pi agent runtime support",
-          "Desktop app download entry on the landing page",
+          "Workspace URL refactor — slug-first routing (`/{slug}/issues`) with legacy URL redirects",
         ],
         fixes: [
           "Codex threads resume across tasks on the same issue",
