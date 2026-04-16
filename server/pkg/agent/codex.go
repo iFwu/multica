@@ -677,8 +677,12 @@ func (c *codexClient) handleRawNotification(method string, params map[string]any
 		}
 
 	case "thread/status/changed":
+		threadID, _ := params["threadId"].(string)
 		statusType := extractNestedString(params, "status", "type")
-		if statusType == "idle" && c.turnStarted {
+		// Only react to status changes from the tracked thread; ignore
+		// subagent threads (e.g. memory consolidation) whose idle signal
+		// would otherwise prematurely terminate the main turn.
+		if statusType == "idle" && c.turnStarted && (threadID == "" || threadID == c.threadID) {
 			if c.onTurnDone != nil {
 				c.onTurnDone(false)
 			}
