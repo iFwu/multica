@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Save, Plus, Trash2 } from "lucide-react";
 import { Input } from "@multica/ui/components/ui/input";
+import { Textarea } from "@multica/ui/components/ui/textarea";
 import { Button } from "@multica/ui/components/ui/button";
 import { Card, CardContent } from "@multica/ui/components/ui/card";
 import { toast } from "sonner";
@@ -83,13 +84,13 @@ export function RepositoriesTab() {
                     placeholder="https://git.example.com/org/repo.git"
                     className="text-sm"
                   />
-                  <Input
-                    type="text"
+                  <Textarea
                     value={repo.description}
                     onChange={(e) => handleRepoChange(index, "description", e.target.value)}
                     disabled={!canManageWorkspace}
                     placeholder="Description (e.g. Go backend + Next.js frontend)"
-                    className="text-sm"
+                    className="min-h-9 text-sm"
+                    rows={1}
                   />
                 </div>
                 {canManageWorkspace && (
