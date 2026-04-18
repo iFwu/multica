@@ -110,3 +110,74 @@ func TestPostJSON(t *testing.T) {
 		}
 	})
 }
+
+func TestDownloadFile(t *testing.T) {
+	payload := []byte("hello world")
+
+	t.Run("resolves relative url against BaseURL", func(t *testing.T) {
+		var gotPath string
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			gotPath = r.URL.Path
+			w.Write(payload)
+		}))
+		defer srv.Close()
+
+		client := NewAPIClient(srv.URL, "", "")
+		data, err := client.DownloadFile(context.Background(), "/uploads/workspaces/ws-abc/file.zip")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if string(data) != string(payload) {
+			t.Fatalf("unexpected body: %q", data)
+		}
+		if gotPath != "/uploads/workspaces/ws-abc/file.zip" {
+			t.Errorf("unexpected request path: %q", gotPath)
+		}
+	})
+
+	t.Run("resolves relative url without leading slash", func(t *testing.T) {
+		var gotPath string
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			gotPath = r.URL.Path
+			w.Write(payload)
+		}))
+		defer srv.Close()
+
+		client := NewAPIClient(srv.URL, "", "")
+		if _, err := client.DownloadFile(context.Background(), "uploads/file.zip"); err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if gotPath != "/uploads/file.zip" {
+			t.Errorf("unexpected request path: %q", gotPath)
+		}
+	})
+
+	t.Run("leaves absolute url untouched", func(t *testing.T) {
+		var gotHost string
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			gotHost = r.Host
+			w.Write(payload)
+		}))
+		defer srv.Close()
+
+		client := NewAPIClient("http://example.invalid", "", "")
+		if _, err := client.DownloadFile(context.Background(), srv.URL+"/signed/file"); err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if gotHost == "example.invalid" {
+			t.Errorf("absolute url should bypass BaseURL, got host %q", gotHost)
+		}
+	})
+
+	t.Run("propagates HTTP error", func(t *testing.T) {
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			http.Error(w, "nope", http.StatusNotFound)
+		}))
+		defer srv.Close()
+
+		client := NewAPIClient(srv.URL, "", "")
+		if _, err := client.DownloadFile(context.Background(), "/uploads/missing.bin"); err == nil {
+			t.Fatal("expected error, got nil")
+		}
+	})
+}

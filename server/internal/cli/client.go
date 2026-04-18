@@ -8,6 +8,7 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http"
+	"net/url"
 	"path/filepath"
 	"strings"
 	"time"
@@ -270,7 +271,18 @@ func (c *APIClient) UploadFile(ctx context.Context, fileData []byte, filename st
 // DownloadFile downloads a file from the given URL and returns the response body.
 // This is used for downloading attachments via their signed download_url.
 // Downloads are limited to 100 MB to match the upload size limit.
+//
+// Self-hosted deployments using local storage without LOCAL_UPLOAD_BASE_URL
+// emit relative download URLs like "/uploads/...". Resolve those against
+// BaseURL so the CLI works regardless of server-side configuration.
 func (c *APIClient) DownloadFile(ctx context.Context, downloadURL string) ([]byte, error) {
+	if parsed, perr := url.Parse(downloadURL); perr == nil && !parsed.IsAbs() {
+		if !strings.HasPrefix(downloadURL, "/") {
+			downloadURL = "/" + downloadURL
+		}
+		downloadURL = c.BaseURL + downloadURL
+	}
+
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, downloadURL, nil)
 	if err != nil {
 		return nil, err
